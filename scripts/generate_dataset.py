@@ -29,6 +29,12 @@ def prepare_prompt(sample):
     # Hint: the input is the samples "output"
     # Remember the prompt-postfix if you use Qwen!
     # return as "enhancement_prompt"
+
+    prompt = replace_pattern(prompt, "tool_start", pp.CONFIG["tool_start"])
+    prompt = replace_pattern(prompt, "tool_end", pp.CONFIG["tool_end"])
+    prompt = replace_pattern(prompt, "tool_call", pp.CONFIG["tool_call"])
+    prompt = replace_pattern(prompt, "prompt_postfix", pp.CONFIG["prompt_postfix"])
+
     return {"enhancement_prompt": prompt}
 
 
@@ -40,6 +46,8 @@ def enhance_outputs(dataset, llm, tokenizer):
         # generate a continuation for the prompt using the llm
         # remember to set a reasonable limit for max_new_tokens, and set good parameters for the generation.
         # Hint: use llm.generate
+        generated = llm.generate(prompt, max_new_tokens=100, temperature=0.1, top_k=5)
+        row["enhanced_output"] = generated
         if i%5==4:
             save_dataset(Dataset.from_list(dataset[:i]))
     return Dataset.from_list(dataset)
