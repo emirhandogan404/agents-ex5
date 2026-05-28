@@ -1,0 +1,24 @@
+[project]
+name = "minitoolformer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "accelerate>=1.11.0",
+    "datasets>=4.4.1",
+    "ddgs>=9.9.1",
+    "duckdb>=1.4.2",
+    "litgpt[all]>=0.5.11",
+    "litserve>=0.2.16",
+    "marimo>=0.17.7",
+    "rootpath>=0.1.1",
+    "sentencepiece>=0.2.1",
+    "transformers[torch]>=4.57.1",
+    "wikipedia>=1.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel>=7.1.0",
+]

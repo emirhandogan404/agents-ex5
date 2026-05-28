@@ -1,0 +1,31 @@
+#model="microsoft/Phi-4-mini-instruct" # option for dataset creation
+model="microsoft/phi-4" # option for dataset creation
+#model="Qwen/Qwen3-14B" # option for dataset creation
+#model="google/gemma-3-1b-it" # option for finetuning
+# model="google/gemma-3-12b-it" # for actual use
+# finetune_model="google/gemma-3-1b-it" # option for finetuning
+finetune_model="TinyLlama/TinyLlama-1.1B-Chat-v1.0" # option for finetuning
+
+[dataset]
+url="https://huggingface.co/datasets/yahma/alpaca-cleaned/resolve/main/alpaca_data_cleaned.json"
+name="alpaca_data_cleaned.json"
+
+[dataset.qwen]
+prompt_postfix="<think>\n\n</think>\n\n"
+
+[toolcalling]
+tool_start="<|tool_start|>"
+tool_call="<|-->|>"
+tool_end="<|tool_end|>"
+
+# for gemma-3 finetuning you could use these tokens
+[toolcalling.gemma]
+tool_start="<unused6000>"
+tool_call="<unused6001>"
+tool_end="<unused6002>"
+
+# for phi-4 finetuning you could use these tokens
+[toolcalling.phi4]
+tool_start="<|dummy_10|>"
+tool_call="<|dummy_11|>"
+tool_end="<|dummy_12|>"
