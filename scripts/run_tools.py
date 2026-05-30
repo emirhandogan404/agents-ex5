@@ -62,12 +62,42 @@ def process_tool_calls(
         ## if the handler exists: run it with the exzracted argument, ensure we have a string to insert
         ## if it does not exist and we have a default handler, call that one instead
         ## otherwise make the result: "<parse_error>"
+        out_parts.append(text[last_pos:m.start()])
 
+        try: 
+            match = FUNC_CALL_RE.search(m.group(1))
+            if not match:
+                res = "<parse_error>"
+            else:
+                func_name = match.group(1)
+                arg_str = match.group(2).strip()
+                
+                if len(arg_str) >= 2 and ((arg_str[0] == '"' and arg_str[-1] == '"') or (arg_str[0] == "'" and arg_str[-1] == "'")):
+                    arg = arg_str[1:-1]
+                else:
+                    arg = arg_str
+
+                if func_name in handlers_dict:
+                    res = str(handlers_dict[func_name](arg))
+                elif default_handler:
+                    res = str(default_handler(func_name, arg))
+                else:
+                    res = "<parse_error>"
+
+            new = m.group(0).removesuffix(end_tag)
+            new = new + call_tag + res + end_tag
+            out_parts.append(new)
+        except Exception:
+            new = m.group(0).removesuffix(end_tag)
+            new = new + call_tag + "<parse_error>" + end_tag
+            out_parts.append(new)
+        
+        last_pos = m.end()
         # reconstruct the matched segment inserting the result right before the end_tag
         # Hint: the full match (m.group(0)) ends with the literal end_tag, so slice it off
         # append the constructed output to out_parts
-        pass
 
+    out_parts.append(text[last_pos:])
     # dont forget to append remaining text after last match 
     # Hint: you need to keep track of the position in the loop above 
     # Hint2: m.end() gives you the position of the end of your match
