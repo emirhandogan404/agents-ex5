@@ -16,12 +16,17 @@ def load_model():
     return tokenizer, llm
 
 # TODO: complete this function.
+@torch.no_grad()
 def calculate_loss(llm, tokenizer, sample):
     """
     Calculate the perplexity loss for a sample using the LitGPT library and torch.
     """
     # get the sample converted to tokens then get the logits for that sample
     # Hint: fix the shape after applying the encode function of the sample
+
+    input_ids = tokenizer.encode(sample).to(llm.model.device)
+    input_ids = input_ids.unsqueeze(0)
+    logits = llm.model(input_ids)
 
     # Shift the logits and input_ids so that at position t we predict token t
     # make sure to make the tensor "contigous in memory"
@@ -31,11 +36,14 @@ def calculate_loss(llm, tokenizer, sample):
     # Use cross-entropy (or negative log-likelihood)
     loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
     # correctly apply crossentropy to the flattened logits & labels
+    loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
     # then reshape back to (batch, seq_len)
+    loss = loss.view(-1)
     # Calculate average negative log-likelihood (avg_nll) per token
+    avg_nll = loss.mean()
     # Perplexity as the exponential of the avg_nll
-    ppl = 0
-    return ppl
+    ppl = torch.exp(avg_nll)
+    return ppl.item()
 
 def find_tool_call_from(text, offset, tool_start, tool_call, tool_end):
     sub_text = text[offset:]
@@ -59,16 +67,44 @@ def filter_api_calls(examples, llm, tokenizer, tool_start, tool_call, tool_end, 
     """
     examples = list(examples)
     for row in tqdm(examples):
-        # Hint: your text would be in row["output"]
+        text = row["output"]
+        
         # calculate the overall positive loss Lp (see Toolformer paper)
+        Lp = calculate_loss(llm, tokenizer, text)
+        
+        offset = 0
+        result = ""
+        
         # while you can extract another tool call (find_tool_call_from)
-        ## calculate Ln as the min of:
-        ## 1. no API call at all
-        ## 2. API call but no result provided
-        ## if the Lp is >threshold much better than Ln, keep the api call
+        while True:
+            match = find_tool_call_from(text, offset, tool_start, tool_call, tool_end)
+            if not match:
+                result += text[offset:]
+                break
+                
+            start_idx, call_idx, end_idx = match
+            
+            ## calculate Ln as the min of:
+            ## 1. no API call at all
+            text_no_api = text[:start_idx] + text[end_idx + len(tool_end):]
+            loss_no_api = calculate_loss(llm, tokenizer, text_no_api)
+            
+            ## 2. API call but no result provided
+            text_no_result = text[:call_idx + len(tool_call)] + text[end_idx + len(tool_end):]
+            loss_no_result = calculate_loss(llm, tokenizer, text_no_result)
+            
+            Ln = min(loss_no_api, loss_no_result)
+            
+            ## if the Lp is >threshold much better than Ln, keep the api call
+            if (Ln - Lp) >= threshold:
+                result += text[offset:end_idx + len(tool_end)]
+            else:
+                result += text[offset:start_idx]
+                
+            offset = end_idx + len(tool_end)
+            
         # add the resulting text as the "output_filtered" column
-        ## i.e.: row["output_filtered"] = result
-        pass
+        row["output_filtered"] = result
     return Dataset.from_list(examples)
 
 
