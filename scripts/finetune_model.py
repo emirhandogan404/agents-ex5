@@ -27,8 +27,8 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
 
     # Load and preprocess data
-    # raw_ds = load_json_dataset(DATASET_FILE)
-    raw_ds = load_json_dataset(DATASET_FILE).select(range(10)) # for testing we only load a small subset
+    raw_ds = load_json_dataset(DATASET_FILE)
+    # raw_ds = load_json_dataset(DATASET_FILE).select(range(10)) # for testing we only load a small subset
     tokenized_ds = raw_ds.map(lambda e: prepare_example(e,tokenizer, pp.CONFIG["toolcalling"]["tool_call"], pp.CONFIG["toolcalling"]["tool_end"]), batched=False)
 
     # Data collator
